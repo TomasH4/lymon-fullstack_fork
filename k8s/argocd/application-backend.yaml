@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1beta1
+kind: Application
+metadata:
+  name: lymon-backend
+  namespace: argocd
+spec:
+  project: lymon
+  source:
+    repoURL: "https://github.com/TomasH4/lymon-fullstack_fork.git"
+    targetRevision: HEAD
+    path: k8s/backend
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

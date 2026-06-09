@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: lymon-backend:local
-          imagePullPolicy: Never
+          image: lymonoficial/lymon-backend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:

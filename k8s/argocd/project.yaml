@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1beta1
+kind: AppProject
+metadata:
+  name: lymon
+  namespace: argocd
+spec:
+  description: "Lymon Fullstack - Hotel Management Platform"
+  sourceRepos:
+    - "https://github.com/TomasH4/lymon-fullstack_fork.git"
+  destinations:
+    - namespace: "default"
+      server: "https://kubernetes.default.svc"
+    - namespace: "monitoring"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

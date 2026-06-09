@@ -121,6 +121,26 @@ withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usern
         }
       }
     }
+
+    stage('Update Kubernetes Manifest') {
+      steps {
+        sh '''
+          sed -i "s|image: lymonoficial/lymon-frontend:.*|image: lymonoficial/lymon-frontend:${BUILD_NUMBER}|" k8s/frontend/frontend.yaml
+        '''
+      }
+    }
+
+    stage('Push Manifest to Git') {
+      steps {
+        sh '''
+          git config user.name "Jenkins CI"
+          git config user.email "jenkins@lymon.local"
+          git add k8s/frontend/frontend.yaml
+          git commit -m "chore: update frontend image tag to ${BUILD_NUMBER} [skip ci]"
+          git push origin HEAD:main
+        '''
+      }
+    }
   }
 
   post {

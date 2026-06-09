@@ -41,6 +41,44 @@ pipeline {
         }
       }
     }
+
+    stage('Build & Publish Docker Image') {
+      steps {
+        script {
+          withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+              export DOCKER_HOST=tcp://host.docker.internal:2375
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+              docker build -t $DOCKER_USER/lymon-backend:$BUILD_NUMBER .
+              docker push $DOCKER_USER/lymon-backend:$BUILD_NUMBER
+              docker tag $DOCKER_USER/lymon-backend:$BUILD_NUMBER $DOCKER_USER/lymon-backend:latest
+              docker push $DOCKER_USER/lymon-backend:latest
+              docker logout
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Update Kubernetes Manifest') {
+      steps {
+        sh '''
+          sed -i "s|image: lymonoficial/lymon-backend:.*|image: lymonoficial/lymon-backend:${BUILD_NUMBER}|" k8s/backend/backend.yaml
+        '''
+      }
+    }
+
+    stage('Push Manifest to Git') {
+      steps {
+        sh '''
+          git config user.name "Jenkins CI"
+          git config user.email "jenkins@lymon.local"
+          git add k8s/backend/backend.yaml
+          git commit -m "chore: update backend image tag to ${BUILD_NUMBER} [skip ci]"
+          git push origin HEAD:main
+        '''
+      }
+    }
   }
 
   post {
