@@ -1,0 +1,55 @@
+# =============================================================
+#  Valores personalizados para kube-prometheus-stack
+#  Proyecto: Lymon Fullstack
+# =============================================================
+
+grafana:
+  # Contraseña de acceso al panel de Grafana
+  adminPassword: "lymon-admin"
+  adminUser: "admin"
+
+  # Recursos reducidos para Minikube (evita OOMKilled)
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Dashboards predefinidos habilitados
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: "America/Bogota"
+
+  # Persistencia deshabilitada (simplifica para entorno local)
+  persistence:
+    enabled: false
+
+prometheus:
+  prometheusSpec:
+    # Recursos reducidos para Minikube
+    resources:
+      requests:
+        cpu: 200m
+        memory: 400Mi
+      limits:
+        cpu: 500m
+        memory: 800Mi
+
+    # Retención de métricas (reducida para ahorrar espacio en disco)
+    retention: 24h
+
+    # Almacenamiento en disco
+    storageSpec: {}
+
+# Alertmanager deshabilitado (no lo necesitamos para la demo)
+alertmanager:
+  enabled: false
+
+# Prometheus Node Exporter (recolecta métricas del nodo de Minikube)
+nodeExporter:
+  enabled: true
+
+# kube-state-metrics (métricas del estado de los pods/deployments)
+kubeStateMetrics:
+  enabled: true

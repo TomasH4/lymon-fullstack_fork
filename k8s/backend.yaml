@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: backend
+          image: lymon-backend:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: PORT
+            - name: isDevelopment
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: isDevelopment
+            - name: MONGO_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: MONGO_USER
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: lymon-secret
+                  key: MONGO_PASS
+            - name: MONGO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: MONGO_DB
+            # El URI usa el hostname del servicio mongo de kubernetes ("database")
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGO_USER):$(MONGO_PASS)@database:27017/$(MONGO_DB)?authSource=admin"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: lymon-secret
+                  key: JWT_SECRET
+            - name: APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: APP_URL
+            - name: BREVO_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: BREVO_API_KEY
+            - name: SUPPORT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: SUPPORT_URL
+            - name: SONAR_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: lymon-config
+                  key: SONAR_TOKEN
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
