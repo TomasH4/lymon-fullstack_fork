@@ -1,0 +1,50 @@
+{
+  "name": "lymon-frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "test:cov:scope": "ng test --watch=false --coverage --coverage-reporters lcov --coverage-reporters text --coverage-reporters text-summary --include \"src/app/domain/use-cases/**/*.spec.ts\" --include \"src/app/presentation/features/hotel/pages/tenantProfile/tenantProfile.spec.ts\" --include \"src/app/presentation/features/hotel/pages/incidentReport/**/*.spec.ts\" --include \"src/app/infrastructure/repositories/tenant.repository.impl.spec.ts\" --include \"src/app/infrastructure/repositories/incident-report.repository.impl.spec.ts\" --coverage-include \"src/app/domain/**/*.ts\" --coverage-include \"src/app/infrastructure/repositories/**/*.ts\" --coverage-include \"src/app/infrastructure/mappers/**/*.ts\" --coverage-include \"src/app/infrastructure/services/**/*.ts\" --coverage-include \"src/app/infrastructure/guards/**/*.ts\" --coverage-include \"src/app/presentation/store/**/*.ts\" --coverage-include \"src/app/presentation/features/hotel/pages/tenantProfile/tenantProfile.ts\" --coverage-include \"src/app/presentation/features/hotel/pages/incidentReport/create/createIncidentReport.ts\" --coverage-include \"src/app/presentation/features/hotel/pages/incidentReport/edit/editIncidentReport.ts\" --coverage-include \"src/app/presentation/features/hotel/pages/incidentReport/list/incidentReportList.ts\""
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "dependencies": {
+    "@angular/common": "^21.1.0",
+    "@angular/compiler": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/forms": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0",
+    "@angular/router": "^21.1.0",
+    "@ng-icons/bootstrap-icons": "^33.1.0",
+    "@ng-icons/core": "^33.1.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.1.1",
+    "@angular/cli": "^21.1.1",
+    "@angular/compiler-cli": "^21.1.0",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "dotenv": "^17.4.2",
+    "jsdom": "^27.1.0",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}

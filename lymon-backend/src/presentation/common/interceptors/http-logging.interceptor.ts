@@ -1,0 +1,157 @@
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { Observable, tap, catchError, throwError } from 'rxjs';
+import { enterRequestAuditContext } from '@/infrastructure/audit/request-audit-context';
+import { MetricsService } from '@/infrastructure/metrics/metrics.service';
+
+@Injectable()
+export class HttpLoggingInterceptor implements NestInterceptor {
+  private readonly logger = new Logger('HTTP');
+
+  constructor(private readonly metricsService: MetricsService) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const req = context.switchToHttp().getRequest<Request>();
+    const res = context.switchToHttp().getResponse<Response>();
+    const { method, url } = req;
+    const start = Date.now();
+
+    // Normalize route: strip query params and replace UUIDs/ObjectIds with :id
+    const route = url
+      .split('?')[0]
+      .replace(
+        /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+        ':id',
+      )
+      .replace(/\b[0-9a-f]{24}\b/gi, ':id')
+      .replace(/\/\d+/g, '/:id');
+
+    enterRequestAuditContext({
+      ipAddress: this.getRequestIp(req),
+    });
+
+    return next.handle().pipe(
+      tap(() => {
+        const ms = Date.now() - start;
+        const statusCode = String(res.statusCode);
+        this.logger.log(`${method} ${url} - ${res.statusCode} - ${ms}ms`);
+
+        this.metricsService.httpRequestsTotal.inc({
+          method,
+          route,
+          status_code: statusCode,
+        });
+        this.metricsService.httpRequestDurationSeconds.observe(
+          { method, route, status_code: statusCode },
+          ms / 1000,
+        );
+      }),
+      catchError((err: unknown) => {
+        const ms = Date.now() - start;
+        const status =
+          err instanceof Error && 'status' in err
+            ? (err as { status: number }).status
+            : 500;
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const statusCode = String(status);
+
+        if (status >= 500) {
+          this.logger.error(
+            `${method} ${url} - ${status} - ${ms}ms | ${message}`,
+          );
+        } else {
+          this.logger.warn(
+            `${method} ${url} - ${status} - ${ms}ms | ${message}`,
+          );
+        }
+
+        this.metricsService.httpRequestsTotal.inc({
+          method,
+          route,
+          status_code: statusCode,
+        });
+        this.metricsService.httpRequestDurationSeconds.observe(
+          { method, route, status_code: statusCode },
+          ms / 1000,
+        );
+
+        return throwError(() => err);
+      }),
+    );
+  }
+
+  private getRequestIp(request: Request): string | undefined {
+    const candidates = [
+      ...this.extractForwardedForValues(
+        this.getHeaderValue(request.headers['x-forwarded-for']),
+      ),
+      ...this.extractForwardedHeaderValues(
+        this.getHeaderValue(request.headers['forwarded']),
+      ),
+      this.getHeaderValue(request.headers['x-real-ip'])?.trim(),
+      this.getHeaderValue(request.headers['x-client-ip'])?.trim(),
+      this.getHeaderValue(request.headers['x-original-forwarded-for'])?.trim(),
+      this.getHeaderValue(request.headers['cf-connecting-ip'])?.trim(),
+      ...(request.ips ?? []),
+      request.ip,
+      request.socket.remoteAddress,
+    ]
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' && value.trim() !== '',
+      )
+      .map((value) => this.normalizeIp(value.trim()));
+
+    const nonLoopbackIp = candidates.find((ip) => !this.isLoopbackIp(ip));
+    return nonLoopbackIp ?? candidates[0];
+  }
+
+  private getHeaderValue(
+    value: string | string[] | undefined,
+  ): string | undefined {
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+
+    return value;
+  }
+
+  private normalizeIp(ip: string): string {
+    return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  }
+
+  private isLoopbackIp(ip: string): boolean {
+    return ip === '::1' || ip === '127.0.0.1' || ip === 'localhost';
+  }
+
+  private extractForwardedForValues(value: string | undefined): string[] {
+    if (!value) {
+      return [];
+    }
+
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  private extractForwardedHeaderValues(value: string | undefined): string[] {
+    if (!value) {
+      return [];
+    }
+
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .flatMap((entry) => {
+        const match = entry.match(/for=(?:"?\[?)([^";\]]+)(?:\]?"?)/i);
+        return match?.[1] ? [match[1]] : [];
+      });
+  }
+}

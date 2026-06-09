@@ -1,0 +1,78 @@
+<app-hotel-page-layout
+  title="Mis Propiedades"
+  subtitle="Gestiona tus propiedades y crea nuevas unidades"
+  iconName="bootstrapHouseDoorFill"
+>
+  <span hotelPageMeta class="properties-count">
+    @if (isLoading()) {
+      Cargando propiedades...
+    } @else {
+      {{ properties().length }} propiedades registradas
+    }
+  </span>
+
+  <div class="properties-container">
+    <!-- Alerts -->
+    @if (errorMessage()) {
+      <div class="alert alert-error">{{ errorMessage() }}</div>
+    }
+    @if (successMessage()) {
+      <div class="alert alert-success">{{ successMessage() }}</div>
+    }
+
+    @if (showForm()) {
+      <app-modal
+        [open]="true"
+        title="Nueva Propiedad"
+        size="large"
+        (closed)="closeForm()"
+      >
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <app-property-form
+            [form]="form"
+            [propertyTypeOptions]="propertyTypeOptions"
+            [cancellationPolicyOptions]="cancellationPolicyOptions"
+          />
+
+          <div modal-footer class="form-actions">
+            <app-button type="button" variant="secondary" (clicked)="cancelForm()">Cancelar</app-button>
+            <app-button type="submit" variant="primary" [disabled]="isSaving()" [loading]="isSaving()">
+              Crear Propiedad
+            </app-button>
+          </div>
+        </form>
+      </app-modal>
+    }
+
+    <!-- Properties list -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Cargando propiedades...</p>
+      </div>
+    } @else if (properties().length === 0) {
+      <div class="empty-state">
+        <ng-icon class="empty-state-icon" name="bootstrapHouseDoorFill" size="64px"></ng-icon>
+        <p class="empty-title">Aún no tienes propiedades</p>
+        <p class="empty-subtitle">Crea tu primera propiedad para empezar a gestionar unidades</p>
+        <app-button type="button" variant="primary" (clicked)="openForm()">
+          Crear primera propiedad
+        </app-button>
+      </div>
+    } @else {
+      <div class="property-grid">
+        @for (prop of properties(); track prop.id) {
+          <app-property-card [property]="prop" (viewUnits)="navigateToUnits($event)" />
+        }
+        
+        <button class="create-property-card" type="button" (click)="openForm()">
+          <span class="create-property-icon" aria-hidden="true">
+            <ng-icon name="bootstrapPlus" size="20px"></ng-icon>
+          </span>
+          <span class="create-property-title">Nueva Propiedad</span>
+          <span class="create-property-subtitle">Haz clic para agregar una propiedad</span>
+        </button>
+      </div>
+    }
+  </div>
+</app-hotel-page-layout>

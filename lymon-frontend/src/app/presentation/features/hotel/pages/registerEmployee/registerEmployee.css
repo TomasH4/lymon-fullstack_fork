@@ -1,0 +1,225 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:host {
+  display: block;
+  font-family: var(--font-primary);
+}
+
+/* ── Cards ───────────────────────────────────────── */
+.form-card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ── Alerts ──────────────────────────────────────── */
+.alert {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.alert-error {
+  background: color-mix(in srgb, var(--color-danger-light) 65%, var(--color-bg-primary));
+  border: var(--input-border-width) solid color-mix(in srgb, var(--color-danger) 25%, white);
+  color: var(--color-danger);
+}
+
+.alert-success {
+  background: color-mix(in srgb, var(--color-success) 12%, var(--color-bg-primary));
+  border: var(--input-border-width) solid color-mix(in srgb, var(--color-success) 28%, white);
+  color: var(--color-primary-dark);
+}
+
+/* ── Section header ──────────────────────────────── */
+.section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.section-icon {
+  width: calc(var(--spacing-xl) + var(--spacing-md));
+  height: calc(var(--spacing-xl) + var(--spacing-md));
+  border-radius: 50%;
+  background: var(--color-primary-dark);
+  color: var(--color-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Form layout ─────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-xl);
+}
+
+.form-group label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.required {
+  color: var(--color-primary-dark);
+}
+
+.form-group select {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-family: var(--font-secondary);
+  font-size: var(--font-size-md);
+  border: var(--input-border-width) solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-fast);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.form-group select:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--input-focus-ring);
+}
+
+.form-group select.input-invalid {
+  border-color: var(--color-error);
+}
+
+.form-group app-input.input-invalid ::ng-deep .input-field,
+.form-group app-select.input-invalid ::ng-deep .select-field {
+  border-color: var(--color-error);
+}
+
+.form-group select.select-multiple {
+  min-height: calc(var(--spacing-4xl) * 3);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  resize: vertical;
+}
+
+/* ── Password field ──────────────────────────────── */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper app-input {
+  display: block;
+}
+
+.password-wrapper app-input ::ng-deep .input-field {
+  padding-right: calc(var(--spacing-4xl) + var(--spacing-sm));
+}
+
+.toggle-password {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.toggle-password:hover {
+  color: var(--color-primary-dark);
+}
+
+/* ── Field messages ──────────────────────────────── */
+.field-error {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  margin-top: var(--spacing-xs);
+}
+
+.field-hint {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+/* ── Role assignment rows ────────────────────────── */
+.role-row {
+  background: var(--color-bg-tertiary);
+  border: var(--input-border-width) solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.role-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.role-row-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.btn-remove-role {
+  --color-primary-dark: var(--color-danger);
+}
+
+.btn-add-role {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+}
+
+/* ── Actions bar ─────────────────────────────────── */
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.form-actions app-button {
+  min-width: calc(var(--spacing-6xl) * 2 + var(--spacing-lg));
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions app-button {
+    width: 100%;
+  }
+}

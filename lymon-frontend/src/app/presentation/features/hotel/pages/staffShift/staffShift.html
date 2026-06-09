@@ -1,0 +1,577 @@
+<app-hotel-page-layout title="Gestion de Turnos"
+  subtitle="Crea turnos fijos y asignalos a empleados por propiedad y fecha" iconName="bootstrapClockHistory">
+
+  @if (notification()) {
+  <div class="notification-toast" [class]="'notification-toast--' + notification()!.type">
+    <div class="notification-content">
+      <ng-icon [name]="notification()!.type === 'error' ? 'bootstrapExclamationTriangle' : 'bootstrapCheckCircle'"
+        size="18">
+      </ng-icon>
+      <span>{{ notification()!.message }}</span>
+    </div>
+    <div class="notification-timeline"></div>
+  </div>
+  }
+  <section class="tabs-container" aria-label="Navegacion de secciones de turnos">
+    <div class="tabs-capsule">
+      <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 'calendar'"
+        (click)="showCalendarTab()">
+        <ng-icon name="bootstrapPersonCheck" size="16"></ng-icon>
+        Calendario de Asignaciones
+      </button>
+      <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab() === 'fixed'" (click)="showFixedTab()">
+        <ng-icon name="bootstrapClockFill" size="16"></ng-icon>
+        Turnos Fijos
+      </button>
+    </div>
+  </section>
+
+  @if (activeTab() === 'calendar') {
+  <section class="section-block">
+    <header class="section-header">
+      <h2>Calendario de Turnos</h2>
+      <p>Visualiza y gestiona las asignaciones de turnos por fecha</p>
+    </header>
+
+    <div class="toolbar-row toolbar-row--calendar">
+      <label class="search-field">
+        <input type="search" class="search-input" [value]="calendarSearch()" (input)="onCalendarSearch($event)"
+          placeholder="Buscar por empleado, propiedad o turno..." aria-label="Buscar por empleado, propiedad o turno" />
+      </label>
+
+      <label class="search-field">
+        <input type="date" class="search-input" [value]="calendarDateFilter()"
+          (input)="onCalendarDateFilterInput($event)" aria-label="Filtrar asignaciones por fecha" />
+      </label>
+
+      @if (calendarDateFilter()) {
+      <button type="button" class="btn-ghost" (click)="clearCalendarDateFilter()">
+        Limpiar fecha
+      </button>
+      }
+
+      <button type="button" class="btn-primary" (click)="openCreateAssignmentModal()">
+        + Nueva asignacion
+      </button>
+    </div>
+
+    @if (filteredAssignmentDays().length === 0) {
+    <article class="empty-state-card">
+      <p>No se encontraron asignaciones con ese criterio de busqueda.</p>
+    </article>
+    } @else {
+    @for (day of filteredAssignmentDays(); track day.dateLabel) {
+    <article class="day-card">
+      <header class="day-card-header">{{ day.dateLabel }}</header>
+
+      <div class="day-list">
+        @for (assignment of day.assignments; track assignment.employeeName) {
+        <article class="assignment-row">
+          <div class="assignment-left">
+            <span class="avatar">{{ assignment.employeeInitials }}</span>
+
+            <div class="assignment-info">
+              <p class="employee-name">{{ assignment.employeeName }}</p>
+              <p class="assignment-meta">
+                {{ assignment.propertyName }}
+                <span class="chip">{{ assignment.shiftName }}</span>
+                {{ assignment.shiftTime }}
+              </p>
+            </div>
+          </div>
+
+          <div class="assignment-actions">
+            <button type="button" class="icon-btn" aria-label="Editar turno">Editar</button>
+            <button type="button" class="icon-btn" aria-label="Eliminar turno">Eliminar</button>
+          </div>
+        </article>
+        }
+      </div>
+    </article>
+    }
+    }
+  </section>
+  } @else {
+  <section class="section-block">
+    <header class="section-header">
+      <h2>Turnos Fijos</h2>
+      <p>Crea turnos fijos y reutilizalos para diferentes empleados y propiedades</p>
+    </header>
+
+    <section class="summary-grid" aria-label="Resumen de turnos fijos">
+      <article class="summary-card">
+        <p class="summary-label">Turnos fijos</p>
+        <p class="summary-value">{{ fixedShiftCount() }}</p>
+        <p class="summary-hint">Plantillas disponibles para asignar</p>
+      </article>
+
+      <article class="summary-card">
+        <p class="summary-label">Propiedades asignadas</p>
+        <p class="summary-value">{{ fixedPropertyOptions().length }}</p>
+        <p class="summary-hint">Hoteles con turnos configurados</p>
+      </article>
+
+      <article class="summary-card">
+        <p class="summary-label">Rango de fechas</p>
+        <p class="summary-value" style="font-size: 1.1rem; padding: 0.5rem 0;">{{ weekDateRangeLabel() }}</p>
+        <p class="summary-hint">Vista actual del calendario</p>
+      </article>
+    </section>
+
+    <div class="toolbar-row toolbar-row--fixed">
+      <div class="gantt-nav">
+        <button type="button" class="icon-btn" (click)="prevWeek()" aria-label="Semana anterior">
+          <ng-icon name="bootstrapArrowLeft" size="16"></ng-icon>
+        </button>
+        <span class="gantt-nav-label">{{ weekDateRangeLabel() }}</span>
+        <button type="button" class="icon-btn" (click)="nextWeek()" aria-label="Siguiente semana">
+          <ng-icon name="bootstrapArrowRight" size="16"></ng-icon>
+        </button>
+      </div>
+
+      <div class="fixed-filters">
+        <label class="search-field">
+          <input type="search" class="search-input" [value]="fixedSearch()" (input)="onFixedSearch($event)"
+            placeholder="Buscar por nombre..." aria-label="Buscar turnos fijos" />
+        </label>
+
+        <label class="search-field">
+          <select class="search-input" [value]="fixedPropertyFilter()" (change)="onFixedPropertyFilterChange($event)">
+            <option value="">Todas las propiedades</option>
+            @for (prop of fixedPropertyOptions(); track prop) {
+            <option [value]="prop">{{ prop }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="search-field">
+          <input type="date" class="search-input" [value]="fixedDateFilter()" (input)="onFixedDateFilterInput($event)"
+            aria-label="Filtrar por fecha" />
+        </label>
+
+        @if (fixedSearch() || fixedPropertyFilter() || fixedDateFilter()) {
+        <button type="button" class="btn-ghost" (click)="clearFixedFilters()">Limpiar</button>
+        }
+
+        <button type="button" class="btn-primary" (click)="openCreateShiftModal()">
+          + Crear turno fijo
+        </button>
+      </div>
+    </div>
+
+    @if (filteredFixedShifts().length === 0) {
+    <article class="empty-state-card">
+      <p>No se encontraron turnos con ese criterio de busqueda.</p>
+    </article>
+    } @else {
+    <div class="gantt-wrapper">
+      <div class="gantt-grid gantt-grid--hours">
+        <!-- Header row -->
+        <div class="gantt-row gantt-head-row">
+          <div class="gantt-cell-title">Fecha</div>
+          <div class="gantt-hours-header">
+            @for (hour of ganttHours(); track hour) {
+            <div class="gantt-hour-cell">{{ hour }}:00</div>
+            }
+          </div>
+        </div>
+
+        @for (day of ganttDays(); track day.iso) {
+        <div class="gantt-row">
+          <div class="gantt-cell-title" [class.gantt-cell-title--today]="day.isToday">
+            <span class="day-name">{{ day.name }}</span>
+            <span class="day-date">{{ day.date }}</span>
+          </div>
+
+          <div class="gantt-day-content">
+            <div class="gantt-hours-bg">
+              @for (hour of ganttHours(); track hour) {
+              <div class="gantt-hour-bg-line"></div>
+              }
+            </div>
+
+            <div class="gantt-day-shifts">
+              @for (segment of getShiftsForDay(day.iso); track segment.shift.id + segment.gridColumn) {
+              <button type="button" class="gantt-bar" [class]="getShiftColorClass(segment.shift.id)"
+                [style.grid-column]="segment.gridColumn"
+                title="{{ segment.shift.name }} ({{ segment.shift.propertyName }}) - {{ segment.shift.timeRange }}"
+                (click)="openShiftDetail(segment.shift)">
+                <div class="gantt-bar-info">
+                  <span class="gantt-bar-label">{{ segment.shift.name }}</span>
+                  <span class="gantt-bar-sub">{{ segment.shift.propertyName }} • {{ segment.shift.timeRange }}</span>
+                </div>
+                <div class="gantt-bar-actions">
+                </div>
+              </button>
+              }
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </section>
+  }
+
+  @if (isCreateModalOpen()) {
+  <button type="button" class="modal-backdrop" (click)="closeCreateShiftModal()" aria-label="Cerrar modal"></button>
+
+  <dialog class="modal-card modal-card--wide" open aria-modal="true" aria-labelledby="create-shift-title"
+    (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+    <!-- Modal header -->
+    <header class="modal-header">
+      <div class="modal-header-info">
+        <h2 id="create-shift-title">Crear turno</h2>
+        <p class="modal-subtitle">Completa los campos para registrar el nuevo turno</p>
+      </div>
+      <button type="button" class="modal-close-btn" aria-label="Cerrar modal" (click)="closeCreateShiftModal()">
+        ✕
+      </button>
+    </header>
+
+    <div class="modal-body">
+
+      <div class="form-section">
+        <span class="form-section-label">Informacion general</span>
+        <div class="form-section-fields">
+          <label class="field-group field-group--full">
+            <span class="field-label">Nombre del turno <span class="field-required">*</span></span>
+            <input type="text" class="field-input" [value]="newShiftName()" (input)="onNewShiftNameInput($event)"
+              placeholder="Ej: Turno Mañana" />
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <span class="form-section-label">Propiedad</span>
+        <div class="form-section-fields">
+          <label class="field-group field-group--full">
+            <span class="field-label">Propiedad <span class="field-required">*</span></span>
+            @if (properties().length === 0) {
+            <div class="field-loading">Cargando propiedades…</div>
+            } @else {
+            <select class="field-input" [value]="newShiftPropertyId()" (change)="onNewShiftPropertyChange($event)">
+              @for (property of properties(); track property.id) {
+              <option [value]="property.id">{{ property.name }}</option>
+              }
+            </select>
+            }
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección: Rango de fechas -->
+      <div class="form-section">
+        <span class="form-section-label">Rango de fechas</span>
+        <div class="form-section-fields form-section-fields--2col">
+          <label class="field-group">
+            <span class="field-label">Fecha de inicio <span class="field-required">*</span></span>
+            <input type="date" class="field-input" [value]="newShiftStartDate()"
+              (input)="onNewShiftStartDateInput($event)" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Fecha de fin <span class="field-required">*</span></span>
+            <input type="date" class="field-input" [value]="newShiftEndDate()"
+              (input)="onNewShiftEndDateInput($event)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <span class="form-section-label">Horario</span>
+        <div class="form-section-fields form-section-fields--2col">
+          <label class="field-group">
+            <span class="field-label">Hora de inicio <span class="field-required">*</span></span>
+            <input type="time" class="field-input" [value]="newShiftStart()" (input)="onNewShiftStartInput($event)" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Hora de fin <span class="field-required">*</span></span>
+            <input type="time" class="field-input" [value]="newShiftEnd()" (input)="onNewShiftEndInput($event)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección: Notas -->
+      <div class="form-section form-section--last">
+        <span class="form-section-label">Observaciones</span>
+        <div class="form-section-fields">
+          <label class="field-group field-group--full">
+            <span class="field-label">
+              Notas
+              <span class="field-optional">(opcional)</span>
+            </span>
+            <textarea class="field-input field-textarea" rows="3" [value]="newShiftNotes()"
+              (input)="onNewShiftNotesInput($event)"
+              placeholder="Ej: El personal solicitó un horario de salida más temprano por razones personales."></textarea>
+          </label>
+        </div>
+      </div>
+
+      @if (createShiftError()) {
+      <div class="form-error-banner">
+        <span class="form-error-icon">⚠</span>
+        {{ createShiftError() }}
+      </div>
+      }
+    </div>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn-ghost" [disabled]="isCreatingShift()" (click)="closeCreateShiftModal()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" [disabled]="isCreatingShift()" (click)="createShift()">
+        @if (isCreatingShift()) {
+        <span class="btn-spinner"></span>
+        Guardando…
+        } @else {
+        Guardar turno
+        }
+      </button>
+    </footer>
+  </dialog>
+  }
+
+
+  @if (isCreateAssignmentModalOpen()) {
+  <button type="button" class="modal-backdrop" (click)="closeCreateAssignmentModal()"
+    aria-label="Cerrar modal"></button>
+
+  <dialog class="modal-card" open aria-modal="true" aria-labelledby="create-assignment-title"
+    (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2 id="create-assignment-title">Nueva asignacion</h2>
+      <button type="button" class="icon-btn" aria-label="Cerrar modal" (click)="closeCreateAssignmentModal()">
+        Cerrar
+      </button>
+    </header>
+
+    <div class="modal-form-grid modal-form-grid--single">
+      <label class="field-group">
+        <span class="field-label">Fecha de asignacion</span>
+        <input type="date" class="field-input" [value]="assignmentDate()" (input)="onAssignmentDateInput($event)" />
+      </label>
+
+      <label class="field-group">
+        <span class="field-label">Propiedad</span>
+        <select class="field-input" [value]="assignmentProperty()" (change)="onAssignmentPropertyChange($event)">
+          @for (property of assignmentPropertyOptions(); track property) {
+          <option [value]="property">{{ property }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field-group">
+        <span class="field-label">Nombre del empleado</span>
+        <select class="field-input" [value]="assignmentEmployee()" (change)="onAssignmentEmployeeChange($event)">
+          @for (employee of assignmentEmployeeOptions(); track employee) {
+          <option [value]="employee">{{ employee }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field-group">
+        <span class="field-label">Turno</span>
+        <select class="field-input" [value]="assignmentShiftId() ?? ''" (change)="onAssignmentShiftChange($event)">
+          @for (shift of assignmentShiftOptions(); track shift.id) {
+          <option [value]="shift.id">{{ shift.name }} ({{ shift.timeRange }})</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (createAssignmentError()) {
+    <p class="form-error">{{ createAssignmentError() }}</p>
+    }
+
+    <footer class="modal-actions">
+      <button type="button" class="btn-ghost" (click)="closeCreateAssignmentModal()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="createAssignment()">
+        Guardar asignacion
+      </button>
+    </footer>
+  </dialog>
+  }
+
+  @if (selectedShiftDetail()) {
+  <button type="button" class="modal-backdrop" (click)="closeShiftDetail()" aria-label="Cerrar detalle"></button>
+
+  <dialog class="modal-card" 
+    [class.modal-card--detail]="!isEditingDetail()"
+    [class.modal-card--detail-wide]="isEditingDetail()"
+    open aria-modal="true" aria-labelledby="shift-detail-title"
+    (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+
+    <header class="modal-header" [class.modal-header--detail]="!isEditingDetail()">
+      <div class="modal-header-info">
+        <h2 id="shift-detail-title" [class.detail-title]="!isEditingDetail()">
+          {{ isEditingDetail() ? 'Editar turno' : selectedShiftDetail()!.name }}
+        </h2>
+        @if (isEditingDetail()) {
+        <p class="modal-subtitle">Modifica los campos necesarios para actualizar el turno</p>
+        }
+      </div>
+
+      @if (!isEditingDetail()) {
+      <div class="detail-actions">
+        <button type="button" class="icon-btn icon-btn--edit" aria-label="Editar turno" (click)="startEditingDetail()">
+          <ng-icon name="bootstrapPencil" size="16"></ng-icon>
+        </button>
+        <button type="button" class="icon-btn icon-btn--delete" aria-label="Eliminar turno" (click)="openConfirmDeleteModal()">
+          <ng-icon name="bootstrapTrash" size="16"></ng-icon>
+        </button>
+      </div>
+      } @else {
+      <button type="button" class="modal-close-btn" aria-label="Cerrar edicion" (click)="cancelEditingDetail()">
+        ✕
+      </button>
+      }
+    </header>
+
+    <div class="modal-body" [class.modal-body--detail]="!isEditingDetail()">
+      @if (!isEditingDetail()) {
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Propiedad</span>
+          <span class="detail-value">{{ selectedShiftDetail()!.propertyName || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Horario</span>
+          <span class="detail-value">{{ selectedShiftDetail()!.timeRange }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Fecha Inicio</span>
+          <span class="detail-value">{{ selectedShiftDetail()!.startDate || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Fecha Fin</span>
+          <span class="detail-value">{{ selectedShiftDetail()!.endDate || 'N/A' }}</span>
+        </div>
+      </div>
+      } @else {
+      <div class="form-section">
+        <span class="form-section-label">Informacion</span>
+        <div class="form-section-fields">
+          <label class="field-group field-group--full">
+            <span class="field-label">Nombre del turno</span>
+            <input type="text" class="field-input" [(ngModel)]="editShiftNameValue" />
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <span class="form-section-label">Rango</span>
+        <div class="form-section-fields form-section-fields--2col">
+          <label class="field-group">
+            <span class="field-label">Fecha de inicio</span>
+            <input type="date" class="field-input" [(ngModel)]="editStartDateValue"
+              [disabled]="isDateLocked(selectedShiftDetail()!.startDate)" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Fecha de fin</span>
+            <input type="date" class="field-input" [(ngModel)]="editEndDateValue" />
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <span class="form-section-label">Horario</span>
+        <div class="form-section-fields form-section-fields--2col">
+          <label class="field-group">
+            <span class="field-label">Hora inicio</span>
+            <input type="time" class="field-input" [(ngModel)]="editStartHourValue" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Hora fin</span>
+            <input type="time" class="field-input" [(ngModel)]="editEndHourValue" />
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <span class="form-section-label">Notas</span>
+        <div class="form-section-fields">
+          <label class="field-group field-group--full">
+            <span class="field-label">Observaciones (opcional)</span>
+            <textarea class="field-input field-input--textarea" [(ngModel)]="editNotesValue"
+              placeholder="Ej: Ajuste por cambios de cobertura de emergencia."></textarea>
+          </label>
+        </div>
+      </div>
+      }
+    </div>
+
+    <footer class="modal-actions" [class.modal-actions--detail]="!isEditingDetail()">
+      @if (!isEditingDetail()) {
+      <button type="button" class="btn-danger" (click)="closeShiftDetail()">
+        Cerrar
+      </button>
+      } @else {
+      <button type="button" class="btn-ghost" (click)="cancelEditingDetail()" [disabled]="isUpdating()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="openConfirmEditModal()" [disabled]="isUpdating()">
+        Actualizar turno
+      </button>
+      }
+    </footer>
+  </dialog>
+  }
+
+  @if (isConfirmEditModalOpen()) {
+  <button type="button" class="modal-backdrop modal-backdrop--confirm" (click)="closeConfirmEditModal()" aria-label="Cerrar confirmación"></button>
+  <dialog class="modal-card modal-card--confirm" open aria-modal="true">
+    <header class="modal-header">
+      <div class="confirm-icon-wrapper">
+        <ng-icon name="bootstrapExclamationTriangle" size="24"></ng-icon>
+      </div>
+      <h2 id="confirm-modal-title">Confirmar edición</h2>
+    </header>
+
+    <div class="modal-body">
+      <p>¿Estás seguro de que deseas guardar los cambios realizados en este turno?</p>
+      <p class="confirm-detail">Esta accion actualizara la informacion para todas las asignaciones futuras vinculadas.
+      </p>
+    </div>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn-ghost" (click)="closeConfirmEditModal()" [disabled]="isUpdating()">
+        No, cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="confirmUpdateShift()" [disabled]="isUpdating()">
+        {{ isUpdating() ? 'Actualizando...' : 'Si, confirmar' }}
+      </button>
+    </footer>
+  </dialog>
+  }
+
+  @if (isConfirmDeleteModalOpen()) {
+  <button type="button" class="modal-backdrop modal-backdrop--confirm" (click)="closeConfirmDeleteModal()" aria-label="Cerrar confirmación"></button>
+  <dialog class="modal-card modal-card--confirm" open aria-modal="true">
+    <header class="modal-header">
+      <div class="confirm-icon-wrapper confirm-icon-wrapper--danger">
+        <ng-icon name="bootstrapTrash" size="24"></ng-icon>
+      </div>
+      <h2 id="delete-modal-title">¿Eliminar turno?</h2>
+    </header>
+
+    <div class="modal-body">
+      <p>¿Estás seguro de que deseas eliminar permanentemente el turno <strong>"{{ selectedShiftDetail()?.name }}"</strong>?</p>
+      <p class="confirm-detail">Esta acción no se puede deshacer y eliminará todas las asignaciones futuras.</p>
+    </div>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn-ghost" (click)="closeConfirmDeleteModal()" [disabled]="isDeleting()">
+        No, cancelar
+      </button>
+      <button type="button" class="btn-primary btn-primary--danger" (click)="confirmDeleteShift()" [disabled]="isDeleting()">
+        {{ isDeleting() ? 'Eliminando...' : 'Si, eliminar' }}
+      </button>
+    </footer>
+  </dialog>
+  }
+</app-hotel-page-layout>
